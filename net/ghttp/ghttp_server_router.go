@@ -130,7 +130,8 @@ func (s *Server) setHandler(ctx context.Context, in setHandlerInput) {
 	if !s.config.RouteOverWrite {
 		switch handler.Type {
 		case HandlerTypeHandler, HandlerTypeObject:
-			if items, ok := s.routesMap[routerKey]; ok {
+			if v := s.routesMap.Get(routerKey); v != nil {
+				items := v.([]registeredRouteItem)
 				var duplicatedHandler *handlerItem
 				for _, item := range items {
 					switch item.Handler.Type {
@@ -243,8 +244,8 @@ func (s *Server) setHandler(ctx context.Context, in setHandlerInput) {
 		}
 	}
 	// Initialize the route map item.
-	if _, ok := s.routesMap[routerKey]; !ok {
-		s.routesMap[routerKey] = make([]registeredRouteItem, 0)
+	if !s.routesMap.Contains(routerKey) {
+		s.routesMap.Set(routerKey, make([]registeredRouteItem, 0))
 	}
 
 	routeItem := registeredRouteItem{
@@ -254,10 +255,12 @@ func (s *Server) setHandler(ctx context.Context, in setHandlerInput) {
 	switch handler.Type {
 	case HandlerTypeHandler, HandlerTypeObject:
 		// Overwrite the route.
-		s.routesMap[routerKey] = []registeredRouteItem{routeItem}
+		s.routesMap.Set(routerKey, []registeredRouteItem{routeItem})
 	default:
 		// Append the route.
-		s.routesMap[routerKey] = append(s.routesMap[routerKey], routeItem)
+		items := s.routesMap.Get(routerKey).([]registeredRouteItem)
+		items = append(items, routeItem)
+		s.routesMap.Set(routerKey, items)
 	}
 }
 

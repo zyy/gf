@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gogf/gf/v2/container/gmap"
 	"github.com/olekukonko/tablewriter"
 
 	"github.com/gogf/gf/v2/container/garray"
@@ -104,7 +105,7 @@ func GetServer(name ...interface{}) *Server {
 		statusHandlerMap: make(map[string][]HandlerFunc),
 		serveTree:        make(map[string]interface{}),
 		serveCache:       gcache.New(),
-		routesMap:        make(map[string][]registeredRouteItem),
+		routesMap:        gmap.NewListMap(true),
 		openapi:          goai.New(),
 	}
 	// Initialize the server using default configurations.
@@ -215,7 +216,7 @@ func (s *Server) Start() error {
 
 	// If there's no route registered and no static service enabled,
 	// it then returns an error of invalid usage of server.
-	if len(s.routesMap) == 0 && !s.config.FileServerEnabled {
+	if s.routesMap.Size() == 0 && !s.config.FileServerEnabled {
 		return gerror.NewCode(
 			gcode.CodeInvalidOperation,
 			`there's no route set or static feature enabled, did you forget import the router?`,
@@ -336,8 +337,8 @@ func (s *Server) GetOpenApi() *goai.OpenApiV3 {
 // GetRoutes retrieves and returns the router array.
 func (s *Server) GetRoutes() []RouterItem {
 	var (
-		m       = make(map[string]*garray.SortedArray)
-		address = s.config.Address
+		address      = s.config.Address
+		domainRoutes = make(map[string]*garray.SortedArray)
 	)
 	if s.config.HTTPSAddr != "" {
 		if len(address) > 0 {
@@ -345,8 +346,9 @@ func (s *Server) GetRoutes() []RouterItem {
 		}
 		address += "tls" + s.config.HTTPSAddr
 	}
-	for k, registeredItems := range s.routesMap {
-		array, _ := gregex.MatchString(`(.*?)%([A-Z]+):(.+)@(.+)`, k)
+	s.routesMap.Iterator(func(key, value interface{}) bool {
+		registeredItems := value.([]registeredRouteItem)
+		array, _ := gregex.MatchString(`(.*?)%([A-Z]+):(.+)@(.+)`, key.(string))
 		for index, registeredItem := range registeredItems {
 			item := RouterItem{
 				Server:     s.config.Name,
@@ -376,9 +378,9 @@ func (s *Server) GetRoutes() []RouterItem {
 			}
 			// If the domain does not exist in the dump map, it creates the map.
 			// The value of the map is a custom sorted array.
-			if _, ok := m[item.Domain]; !ok {
+			if _, ok := domainRoutes[item.Domain]; !ok {
 				// Sort in ASC order.
-				m[item.Domain] = garray.NewSortedArray(func(v1, v2 interface{}) int {
+				domainRoutes[item.Domain] = garray.NewSortedArray(func(v1, v2 interface{}) int {
 					item1 := v1.(RouterItem)
 					item2 := v2.(RouterItem)
 					r := 0
@@ -398,12 +400,12 @@ func (s *Server) GetRoutes() []RouterItem {
 					return r
 				})
 			}
-			m[item.Domain].Add(item)
+			domainRoutes[item.Domain].Add(item)
 		}
-	}
-
+		return true
+	})
 	routerArray := make([]RouterItem, 0, 128)
-	for _, array := range m {
+	for _, array := range domainRoutes {
 		for _, v := range array.Slice() {
 			routerArray = append(routerArray, v.(RouterItem))
 		}

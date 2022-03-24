@@ -25,19 +25,19 @@ import (
 type (
 	// Server wraps the http.Server and provides more rich features.
 	Server struct {
-		instance         string                           // Instance name.
-		config           ServerConfig                     // Configuration.
-		plugins          []Plugin                         // Plugin array to extend server functionality.
-		servers          []*gracefulServer                // Underlying http.Server array.
-		serverCount      *gtype.Int                       // Underlying http.Server count.
-		closeChan        chan struct{}                    // Used for underlying server closing event notification.
-		serveTree        map[string]interface{}           // The route maps tree.
-		serveCache       *gcache.Cache                    // Server caches for internal usage.
-		routesMap        map[string][]registeredRouteItem // Route map mainly for route dumps and repeated route checks.
-		statusHandlerMap map[string][]HandlerFunc         // Custom status handler map.
-		sessionManager   *gsession.Manager                // Session manager.
-		openapi          *goai.OpenApiV3                  // The OpenApi specification management object.
-		service          *gsvc.Service                    // The service for Registry.
+		instance         string                   // Instance name.
+		config           ServerConfig             // Configuration.
+		plugins          []Plugin                 // Plugin array to extend server functionality.
+		servers          []*gracefulServer        // Underlying http.Server array.
+		serverCount      *gtype.Int               // Underlying http.Server count.
+		closeChan        chan struct{}            // Used for underlying server closing event notification.
+		serveTree        map[string]interface{}   // The route maps tree.
+		serveCache       *gcache.Cache            // Server caches for internal usage.
+		routesMap        *gmap.ListMap            // Route map mainly for route dumps and repeated route checks. `map[string][]registeredRouteItem`
+		statusHandlerMap map[string][]HandlerFunc // Custom status handler map.
+		sessionManager   *gsession.Manager        // Session manager.
+		openapi          *goai.OpenApiV3          // The OpenApi specification management object.
+		service          *gsvc.Service            // The service for Registry.
 	}
 
 	// Router object.

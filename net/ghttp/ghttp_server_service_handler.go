@@ -24,7 +24,12 @@ import (
 // 2. func(context.Context, BizRequest)(BizResponse, error)
 func (s *Server) BindHandler(pattern string, handler interface{}) {
 	var ctx = context.TODO()
-	funcInfo, err := s.checkAndCreateFuncInfo(handler, "", "", "")
+	funcInfo, err := s.checkAndCreateFuncInfo(checkAndCreateFuncInfoInput{
+		Func:       handler,
+		PkgPath:    "",
+		StructName: "",
+		MethodName: "",
+	})
 	if err != nil {
 		s.Logger().Fatalf(ctx, `%+v`, err)
 	}
@@ -143,22 +148,30 @@ func (s *Server) nameToUri(name string) string {
 	}
 }
 
-func (s *Server) checkAndCreateFuncInfo(f interface{}, pkgPath, structName, methodName string) (info handlerFuncInfo, err error) {
-	handlerFunc, ok := f.(HandlerFunc)
+type checkAndCreateFuncInfoInput struct {
+	Func       interface{}
+	Ctrl       reflect.Value
+	PkgPath    string
+	StructName string
+	MethodName string
+}
+
+func (s *Server) checkAndCreateFuncInfo(in checkAndCreateFuncInfoInput) (info handlerFuncInfo, err error) {
+	handlerFunc, ok := in.Func.(HandlerFunc)
 	if !ok {
-		reflectType := reflect.TypeOf(f)
+		reflectType := reflect.TypeOf(in.Func)
 		if reflectType.NumIn() != 2 || reflectType.NumOut() != 2 {
-			if pkgPath != "" {
+			if in.PkgPath != "" {
 				err = gerror.NewCodef(
 					gcode.CodeInvalidParameter,
 					`invalid handler: %s.%s.%s defined as "%s", but "func(*ghttp.Request)" or "func(context.Context, *BizRequest)(*BizResponse, error)" is required`,
-					pkgPath, structName, methodName, reflect.TypeOf(f).String(),
+					in.PkgPath, in.StructName, in.MethodName, reflect.TypeOf(in.Func).String(),
 				)
 			} else {
 				err = gerror.NewCodef(
 					gcode.CodeInvalidParameter,
 					`invalid handler: defined as "%s", but "func(*ghttp.Request)" or "func(context.Context, *BizRequest)(*BizResponse, error)" is required`,
-					reflect.TypeOf(f).String(),
+					reflect.TypeOf(in.Func).String(),
 				)
 			}
 			return
@@ -168,7 +181,7 @@ func (s *Server) checkAndCreateFuncInfo(f interface{}, pkgPath, structName, meth
 			err = gerror.NewCodef(
 				gcode.CodeInvalidParameter,
 				`invalid handler: defined as "%s", but the first input parameter should be type of "context.Context"`,
-				reflect.TypeOf(f).String(),
+				reflect.TypeOf(in.Func).String(),
 			)
 			return
 		}
@@ -177,7 +190,7 @@ func (s *Server) checkAndCreateFuncInfo(f interface{}, pkgPath, structName, meth
 			err = gerror.NewCodef(
 				gcode.CodeInvalidParameter,
 				`invalid handler: defined as "%s", but the last output parameter should be type of "error"`,
-				reflect.TypeOf(f).String(),
+				reflect.TypeOf(in.Func).String(),
 			)
 			return
 		}
@@ -202,8 +215,11 @@ func (s *Server) checkAndCreateFuncInfo(f interface{}, pkgPath, structName, meth
 			return
 		}
 	}
-	info.Func = handlerFunc
-	info.Type = reflect.TypeOf(f)
-	info.Value = reflect.ValueOf(f)
+	info = handlerFuncInfo{
+		Func:  handlerFunc,
+		Type:  reflect.TypeOf(in.Func),
+		Value: reflect.ValueOf(in.Func),
+		Ctrl:  in.Ctrl,
+	}
 	return
 }

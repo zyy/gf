@@ -327,7 +327,9 @@ func (g *RouterGroup) doBindRoutersToServer(ctx context.Context, item *preBindIt
 	switch bindType {
 	case groupBindTypeHandler:
 		if reflect.ValueOf(object).Kind() == reflect.Func {
-			funcInfo, err := g.server.checkAndCreateFuncInfo(object, "", "", "")
+			funcInfo, err := g.server.checkAndCreateFuncInfo(checkAndCreateFuncInfoInput{
+				Func: object,
+			})
 			if err != nil {
 				g.server.Logger().Fatal(ctx, err.Error())
 				return g

@@ -46,9 +46,7 @@ const (
 	HttpMethodOptions = `OPTIONS`
 	HttpMethodPatch   = `PATCH`
 	HttpMethodTrace   = `TRACE`
-)
 
-const (
 	TypeInteger    = `integer`
 	TypeNumber     = `number`
 	TypeBoolean    = `boolean`
@@ -63,25 +61,22 @@ const (
 	FormatDate     = `date`
 	FormatDateTime = `date-time`
 	FormatPassword = `password`
-)
 
-const (
 	ParameterInHeader = `header`
 	ParameterInPath   = `path`
 	ParameterInQuery  = `query`
 	ParameterInCookie = `cookie`
-)
 
-const (
 	TagNamePath     = `path`
 	TagNameMethod   = `method`
 	TagNameMime     = `mime`
 	TagNameConsumes = `consumes`
 	TagNameType     = `type`
 	TagNameDomain   = `domain`
-)
 
-const (
+	xExtensionService            = `x-service`
+	xExtensionStruct             = `x-struct`
+	xExtensionMethod             = `x-method`
 	validationRuleKeyForRequired = `required`
 	validationRuleKeyForIn       = `in:`
 )

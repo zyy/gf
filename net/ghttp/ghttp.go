@@ -70,8 +70,9 @@ type (
 	// handlerFuncInfo contains the HandlerFunc address and its reflection type.
 	handlerFuncInfo struct {
 		Func  HandlerFunc   // Handler function address.
-		Type  reflect.Type  // Reflect type information for current handler, which is used for extensions of the handler feature.
-		Value reflect.Value // Reflect value information for current handler, which is used for extensions of the handler feature.
+		Type  reflect.Type  // Reflect type information for current handler.
+		Value reflect.Value // Reflect value information for current handler.
+		Ctrl  reflect.Value // Reflect value of controller struct of current handler, which might be nil.
 	}
 
 	// HandlerItem is the registered handler for route handling,

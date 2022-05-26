@@ -46,8 +46,10 @@ const (
 type addPathInput struct {
 	Path     string      // Precise route path.
 	Prefix   string      // Route path prefix.
-	Method   string      // Route method.
+	Method   string      // Route method. eg: get/put/post/delete.
 	Function interface{} // Uniformed function.
+	Ctrl     string      // Controller name. eg: Controller/User/Product.
+	Func     string      // Route function name. eg: GetList/GetOne/Update.
 }
 
 func (oai *OpenApiV3) addPath(in addPathInput) error {
@@ -283,6 +285,14 @@ func (oai *OpenApiV3) addPath(in addPathInput) error {
 	default:
 		return gerror.NewCodef(gcode.CodeInvalidParameter, `invalid method "%s"`, in.Method)
 	}
+
+	if in.Ctrl != "" && operation.XExtensions[xExtensionCtrl] == "" {
+		operation.XExtensions[xExtensionCtrl] = in.Ctrl
+	}
+	if in.Func != "" && operation.XExtensions[xExtensionFunc] == "" {
+		operation.XExtensions[xExtensionFunc] = in.Func
+	}
+
 	oai.Paths[in.Path] = path
 	return nil
 }

@@ -8,6 +8,7 @@ package ghttp
 
 import (
 	"context"
+	"reflect"
 
 	"github.com/gogf/gf/v2/internal/intlog"
 	"github.com/gogf/gf/v2/net/goai"
@@ -34,12 +35,20 @@ func (s *Server) initOpenApi() {
 			method = ""
 		}
 		if item.Handler.Info.Func == nil {
-			err = s.openapi.Add(goai.AddInput{
+			oaiInput := goai.AddInput{
 				Path:   item.Route,
 				Method: method,
 				Object: item.Handler.Info.Value.Interface(),
-			})
-			if err != nil {
+				Func:   gstr.SubStrFromREx(item.Handler.Name, "."),
+			}
+			if item.Handler.Info.Ctrl.IsValid() {
+				if item.Handler.Info.Ctrl.Kind() == reflect.Ptr {
+					oaiInput.Ctrl = item.Handler.Info.Ctrl.Type().Elem().Name()
+				} else {
+					oaiInput.Ctrl = item.Handler.Info.Ctrl.Type().Name()
+				}
+			}
+			if err = s.openapi.Add(oaiInput); err != nil {
 				s.Logger().Fatalf(ctx, `%+v`, err)
 			}
 		}

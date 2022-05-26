@@ -258,7 +258,8 @@ func (c *Client) prepareRequest(ctx context.Context, method, url string, data ..
 			if req, err = http.NewRequest(method, url, buffer); err != nil {
 				err = gerror.Wrapf(err, `http.NewRequest failed for method "%s" and URL "%s"`, method, url)
 				return nil, err
-			} else {
+			}
+			if _, ok := c.header[httpHeaderContentType]; !ok {
 				req.Header.Set(httpHeaderContentType, writer.FormDataContentType())
 			}
 		} else {
@@ -267,18 +268,17 @@ func (c *Client) prepareRequest(ctx context.Context, method, url string, data ..
 			if req, err = http.NewRequest(method, url, bytes.NewReader(paramBytes)); err != nil {
 				err = gerror.Wrapf(err, `http.NewRequest failed for method "%s" and URL "%s"`, method, url)
 				return nil, err
-			} else {
-				if v, ok := c.header[httpHeaderContentType]; ok {
-					// Custom Content-Type.
-					req.Header.Set(httpHeaderContentType, v)
-				} else if len(paramBytes) > 0 {
-					if (paramBytes[0] == '[' || paramBytes[0] == '{') && json.Valid(paramBytes) {
-						// Auto-detecting and setting the post content format: JSON.
-						req.Header.Set(httpHeaderContentType, httpHeaderContentTypeJson)
-					} else if gregex.IsMatchString(httpRegexParamJson, params) {
-						// If the parameters passed like "name=value", it then uses form type.
-						req.Header.Set(httpHeaderContentType, httpHeaderContentTypeForm)
-					}
+			}
+			if v, ok := c.header[httpHeaderContentType]; ok {
+				// Custom Content-Type.
+				req.Header.Set(httpHeaderContentType, v)
+			} else if len(paramBytes) > 0 {
+				if (paramBytes[0] == '[' || paramBytes[0] == '{') && json.Valid(paramBytes) {
+					// Auto-detecting and setting the post content format: JSON.
+					req.Header.Set(httpHeaderContentType, httpHeaderContentTypeJson)
+				} else if gregex.IsMatchString(httpRegexParamJson, params) {
+					// If the parameters passed like "name=value", it then uses form type.
+					req.Header.Set(httpHeaderContentType, httpHeaderContentTypeForm)
 				}
 			}
 		}

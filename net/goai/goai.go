@@ -74,9 +74,8 @@ const (
 	TagNameType     = `type`
 	TagNameDomain   = `domain`
 
-	xExtensionService            = `x-service`
-	xExtensionStruct             = `x-struct`
-	xExtensionMethod             = `x-method`
+	xExtensionCtrl               = `x-ctrl`
+	xExtensionFunc               = `x-func`
 	validationRuleKeyForRequired = `required`
 	validationRuleKeyForIn       = `in:`
 )
@@ -108,7 +107,9 @@ type AddInput struct {
 	Path   string      // Path specifies the custom path if this is not configured in Meta of struct tag.
 	Prefix string      // Prefix specifies the custom route path prefix, which will be added with the path tag in Meta of struct tag.
 	Method string      // Method specifies the custom HTTP method if this is not configured in Meta of struct tag.
-	Object interface{} // Object can be an instance of struct or a route function.
+	Object interface{} // Object can be an instance of input/output struct or a route function.
+	Ctrl   string      // Ctrl specifies the custom HTTP controller name if this is not configured in Meta of struct tag.
+	Func   string      // Func specifies the custom HTTP route function name if this is not configured in Meta of struct tag.
 }
 
 // Add adds an instance of struct or a route function to OpenApiV3 definition implements.
@@ -129,6 +130,8 @@ func (oai *OpenApiV3) Add(in AddInput) error {
 			Prefix:   in.Prefix,
 			Method:   in.Method,
 			Function: in.Object,
+			Ctrl:     in.Ctrl,
+			Func:     in.Func,
 		})
 
 	default:

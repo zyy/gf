@@ -25,10 +25,10 @@ import (
 func (s *Server) BindHandler(pattern string, handler interface{}) {
 	var ctx = context.TODO()
 	funcInfo, err := s.checkAndCreateFuncInfo(checkAndCreateFuncInfoInput{
-		Func:       handler,
-		PkgPath:    "",
-		StructName: "",
-		MethodName: "",
+		Func:           handler,
+		PkgPath:        "",
+		MethodName:     "",
+		StructTypeName: "",
 	})
 	if err != nil {
 		s.Logger().Fatalf(ctx, `%+v`, err)
@@ -149,11 +149,11 @@ func (s *Server) nameToUri(name string) string {
 }
 
 type checkAndCreateFuncInfoInput struct {
-	Func       interface{}
-	Ctrl       reflect.Value
-	PkgPath    string
-	StructName string
-	MethodName string
+	Func           interface{}
+	Ctrl           reflect.Value
+	PkgPath        string
+	MethodName     string
+	StructTypeName string
 }
 
 func (s *Server) checkAndCreateFuncInfo(in checkAndCreateFuncInfoInput) (info handlerFuncInfo, err error) {
@@ -165,7 +165,7 @@ func (s *Server) checkAndCreateFuncInfo(in checkAndCreateFuncInfoInput) (info ha
 				err = gerror.NewCodef(
 					gcode.CodeInvalidParameter,
 					`invalid handler: %s.%s.%s defined as "%s", but "func(*ghttp.Request)" or "func(context.Context, *BizRequest)(*BizResponse, error)" is required`,
-					in.PkgPath, in.StructName, in.MethodName, reflect.TypeOf(in.Func).String(),
+					in.PkgPath, in.StructTypeName, in.MethodName, reflect.TypeOf(in.Func).String(),
 				)
 			} else {
 				err = gerror.NewCodef(

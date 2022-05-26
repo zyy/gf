@@ -124,17 +124,17 @@ func (s *Server) doBindObject(ctx context.Context, in doBindObjectInput) {
 		if methodName == specialMethodNameInit || methodName == specialMethodNameShut {
 			continue
 		}
-		objName := gstr.Replace(reflectType.String(), fmt.Sprintf(`%s.`, pkgName), "")
-		if objName[0] == '*' {
-			objName = fmt.Sprintf(`(%s)`, objName)
+		structTypeName := gstr.Replace(reflectType.String(), fmt.Sprintf(`%s.`, pkgName), "")
+		if structTypeName[0] == '*' {
+			structTypeName = fmt.Sprintf(`(%s)`, structTypeName)
 		}
 
 		funcInfo, err := s.checkAndCreateFuncInfo(checkAndCreateFuncInfoInput{
-			Func:       reflectValue.Method(i).Interface(),
-			Ctrl:       reflectValue,
-			PkgPath:    pkgPath,
-			StructName: objName,
-			MethodName: methodName,
+			Func:           reflectValue.Method(i).Interface(),
+			Ctrl:           reflectValue,
+			PkgPath:        pkgPath,
+			MethodName:     methodName,
+			StructTypeName: structTypeName,
 		})
 		if err != nil {
 			s.Logger().Fatalf(ctx, `%+v`, err)
@@ -142,7 +142,7 @@ func (s *Server) doBindObject(ctx context.Context, in doBindObjectInput) {
 
 		key := s.mergeBuildInNameToPattern(in.Pattern, structName, methodName, true)
 		handlerMap[key] = &HandlerItem{
-			Name:       fmt.Sprintf(`%s.%s.%s`, pkgPath, objName, methodName),
+			Name:       fmt.Sprintf(`%s.%s.%s`, pkgPath, structTypeName, methodName),
 			Type:       HandlerTypeObject,
 			Info:       funcInfo,
 			InitFunc:   initFunc,
@@ -169,7 +169,7 @@ func (s *Server) doBindObject(ctx context.Context, in doBindObjectInput) {
 				k = "/" + k
 			}
 			handlerMap[k] = &HandlerItem{
-				Name:       fmt.Sprintf(`%s.%s.%s`, pkgPath, objName, methodName),
+				Name:       fmt.Sprintf(`%s.%s.%s`, pkgPath, structTypeName, methodName),
 				Type:       HandlerTypeObject,
 				Info:       funcInfo,
 				InitFunc:   initFunc,
@@ -223,20 +223,20 @@ func (s *Server) doBindObjectMethod(ctx context.Context, in doBindObjectMethodIn
 		shutFunc = reflectValue.MethodByName(specialMethodNameShut).Interface().(func(*Request))
 	}
 	var (
-		pkgPath = reflectType.Elem().PkgPath()
-		pkgName = gfile.Basename(pkgPath)
-		objName = gstr.Replace(reflectType.String(), fmt.Sprintf(`%s.`, pkgName), "")
+		pkgPath        = reflectType.Elem().PkgPath()
+		pkgName        = gfile.Basename(pkgPath)
+		structTypeName = gstr.Replace(reflectType.String(), fmt.Sprintf(`%s.`, pkgName), "")
 	)
-	if objName[0] == '*' {
-		objName = fmt.Sprintf(`(%s)`, objName)
+	if structTypeName[0] == '*' {
+		structTypeName = fmt.Sprintf(`(%s)`, structTypeName)
 	}
 
 	funcInfo, err := s.checkAndCreateFuncInfo(checkAndCreateFuncInfoInput{
-		Func:       methodValue.Interface(),
-		Ctrl:       reflectValue,
-		PkgPath:    pkgPath,
-		StructName: objName,
-		MethodName: methodName,
+		Func:           methodValue.Interface(),
+		Ctrl:           reflectValue,
+		PkgPath:        pkgPath,
+		MethodName:     methodName,
+		StructTypeName: structTypeName,
 	})
 	if err != nil {
 		s.Logger().Fatalf(ctx, `%+v`, err)
@@ -244,7 +244,7 @@ func (s *Server) doBindObjectMethod(ctx context.Context, in doBindObjectMethodIn
 
 	key := s.mergeBuildInNameToPattern(in.Pattern, structName, methodName, false)
 	handlerMap[key] = &HandlerItem{
-		Name:       fmt.Sprintf(`%s.%s.%s`, pkgPath, objName, methodName),
+		Name:       fmt.Sprintf(`%s.%s.%s`, pkgPath, structTypeName, methodName),
 		Type:       HandlerTypeObject,
 		Info:       funcInfo,
 		InitFunc:   initFunc,
@@ -286,16 +286,16 @@ func (s *Server) doBindObjectRest(ctx context.Context, in doBindObjectInput) {
 			continue
 		}
 		pkgName := gfile.Basename(pkgPath)
-		objName := gstr.Replace(reflectType.String(), fmt.Sprintf(`%s.`, pkgName), "")
-		if objName[0] == '*' {
-			objName = fmt.Sprintf(`(%s)`, objName)
+		structTypeName := gstr.Replace(reflectType.String(), fmt.Sprintf(`%s.`, pkgName), "")
+		if structTypeName[0] == '*' {
+			structTypeName = fmt.Sprintf(`(%s)`, structTypeName)
 		}
 		funcInfo, err := s.checkAndCreateFuncInfo(checkAndCreateFuncInfoInput{
-			Func:       reflectValue.Method(i).Interface(),
-			Ctrl:       reflectValue,
-			PkgPath:    pkgPath,
-			StructName: objName,
-			MethodName: methodName,
+			Func:           reflectValue.Method(i).Interface(),
+			Ctrl:           reflectValue,
+			PkgPath:        pkgPath,
+			MethodName:     methodName,
+			StructTypeName: structTypeName,
 		})
 		if err != nil {
 			s.Logger().Fatalf(ctx, `%+v`, err)
@@ -303,7 +303,7 @@ func (s *Server) doBindObjectRest(ctx context.Context, in doBindObjectInput) {
 
 		key := s.mergeBuildInNameToPattern(methodName+":"+in.Pattern, structName, methodName, false)
 		handlerMap[key] = &HandlerItem{
-			Name:       fmt.Sprintf(`%s.%s.%s`, pkgPath, objName, methodName),
+			Name:       fmt.Sprintf(`%s.%s.%s`, pkgPath, structTypeName, methodName),
 			Type:       HandlerTypeObject,
 			Info:       funcInfo,
 			InitFunc:   initFunc,

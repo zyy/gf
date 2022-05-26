@@ -245,3 +245,30 @@ func (oai *OpenApiV3) tagMapToSchema(tagMap map[string]string, schema *Schema) e
 	}
 	return nil
 }
+
+func (s *Schema) UnmarshalJSON(b []byte) error {
+	var (
+		m   map[string]json.RawMessage
+		err error
+	)
+	// To prevent JSON marshal recursion error.
+	type tempSchema Schema
+	var t tempSchema
+	if err = json.Unmarshal(b, &t); err != nil {
+		return err
+	}
+	*s = Schema(t)
+
+	if err = json.Unmarshal(b, &m); err != nil {
+		return err
+	}
+	for k, v := range m {
+		if isXExtensionTag(k) {
+			if s.XExtensions == nil {
+				s.XExtensions = make(XExtensions)
+			}
+			s.XExtensions[k] = string(v)
+		}
+	}
+	return nil
+}

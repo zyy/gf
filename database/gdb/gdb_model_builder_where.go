@@ -16,8 +16,11 @@ import (
 // string/map/gmap/slice/struct/*struct, etc. Note that, if it's called more than one times,
 // multiple conditions will be joined into where statement using "AND".
 func (b *WhereBuilder) doWhereType(whereType string, where interface{}, args ...interface{}) *WhereBuilder {
-	where, args = b.convertWhereBuilder(where, args)
-
+	var err error
+	where, args, err = b.convertWhereBuilder(where, args)
+	if err != nil {
+		panic(err)
+	}
 	builder := b.getBuilder()
 	if builder.whereHolder == nil {
 		builder.whereHolder = make([]WhereHolder, 0)

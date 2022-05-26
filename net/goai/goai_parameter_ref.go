@@ -99,3 +99,8 @@ func (r ParameterRef) MarshalJSON() ([]byte, error) {
 	}
 	return json.Marshal(r.Value)
 }
+
+func (r *ParameterRef) UnmarshalJSON(b []byte) error {
+	r.Value = &Parameter{}
+	return json.Unmarshal(b, r.Value)
+}

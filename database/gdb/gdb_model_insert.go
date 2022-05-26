@@ -88,7 +88,7 @@ func (m *Model) Data(data ...interface{}) *Model {
 				}
 				list := make(List, reflectInfo.OriginValue.Len())
 				for i := 0; i < reflectInfo.OriginValue.Len(); i++ {
-					list[i], err = m.db.ConvertDataForRecord(ctx, reflectInfo.OriginValue.Index(i).Interface())
+					list[i], err = m.db.GetCore().ConvertDataForInsertAndUpdate(ctx, reflectInfo.OriginValue.Index(i).Interface())
 					if err != nil {
 						panic(err)
 					}
@@ -108,21 +108,21 @@ func (m *Model) Data(data ...interface{}) *Model {
 						list  = make(List, len(array))
 					)
 					for i := 0; i < len(array); i++ {
-						list[i], err = m.db.ConvertDataForRecord(ctx, array[i])
+						list[i], err = m.db.GetCore().ConvertDataForInsertAndUpdate(ctx, array[i])
 						if err != nil {
 							panic(err)
 						}
 					}
 					model.data = list
 				} else {
-					model.data, err = m.db.ConvertDataForRecord(ctx, data[0])
+					model.data, err = m.db.GetCore().ConvertDataForInsertAndUpdate(ctx, data[0])
 					if err != nil {
 						panic(err)
 					}
 				}
 
 			case reflect.Map:
-				model.data, err = m.db.ConvertDataForRecord(ctx, data[0])
+				model.data, err = m.db.GetCore().ConvertDataForInsertAndUpdate(ctx, data[0])
 				if err != nil {
 					panic(err)
 				}
@@ -268,7 +268,7 @@ func (m *Model) doInsertWithOption(ctx context.Context, insertOption int) (resul
 	case List:
 		list = value
 		for i, v := range list {
-			list[i], err = m.db.ConvertDataForRecord(ctx, v)
+			list[i], err = m.db.GetCore().ConvertDataForInsertAndUpdate(ctx, v)
 			if err != nil {
 				return nil, err
 			}
@@ -276,7 +276,7 @@ func (m *Model) doInsertWithOption(ctx context.Context, insertOption int) (resul
 
 	case Map:
 		var listItem map[string]interface{}
-		if listItem, err = m.db.ConvertDataForRecord(ctx, value); err != nil {
+		if listItem, err = m.db.GetCore().ConvertDataForInsertAndUpdate(ctx, value); err != nil {
 			return nil, err
 		}
 		list = List{listItem}
@@ -288,12 +288,14 @@ func (m *Model) doInsertWithOption(ctx context.Context, insertOption int) (resul
 		case reflect.Slice, reflect.Array:
 			list = make(List, reflectInfo.OriginValue.Len())
 			for i := 0; i < reflectInfo.OriginValue.Len(); i++ {
-				list[i], err = m.db.ConvertDataForRecord(ctx, reflectInfo.OriginValue.Index(i).Interface())
+				list[i], err = m.db.GetCore().ConvertDataForInsertAndUpdate(
+					ctx, reflectInfo.OriginValue.Index(i).Interface(),
+				)
 			}
 
 		case reflect.Map:
 			var listItem map[string]interface{}
-			if listItem, err = m.db.ConvertDataForRecord(ctx, value); err != nil {
+			if listItem, err = m.db.GetCore().ConvertDataForInsertAndUpdate(ctx, value); err != nil {
 				return nil, err
 			}
 			list = List{listItem}
@@ -303,14 +305,14 @@ func (m *Model) doInsertWithOption(ctx context.Context, insertOption int) (resul
 				array := v.Interfaces()
 				list = make(List, len(array))
 				for i := 0; i < len(array); i++ {
-					list[i], err = m.db.ConvertDataForRecord(ctx, array[i])
+					list[i], err = m.db.GetCore().ConvertDataForInsertAndUpdate(ctx, array[i])
 					if err != nil {
 						return nil, err
 					}
 				}
 			} else {
 				var listItem map[string]interface{}
-				if listItem, err = m.db.ConvertDataForRecord(ctx, value); err != nil {
+				if listItem, err = m.db.GetCore().ConvertDataForInsertAndUpdate(ctx, value); err != nil {
 					return nil, err
 				}
 				list = List{listItem}

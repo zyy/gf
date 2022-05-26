@@ -33,3 +33,8 @@ func (r LinkRef) MarshalJSON() ([]byte, error) {
 	}
 	return json.Marshal(r.Value)
 }
+
+func (r *LinkRef) UnmarshalJSON(b []byte) error {
+	r.Value = &Link{}
+	return json.Unmarshal(b, r.Value)
+}

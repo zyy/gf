@@ -29,3 +29,8 @@ func (r HeaderRef) MarshalJSON() ([]byte, error) {
 	}
 	return json.Marshal(r.Value)
 }
+
+func (r *HeaderRef) UnmarshalJSON(b []byte) error {
+	r.Value = &Header{}
+	return json.Unmarshal(b, r.Value)
+}

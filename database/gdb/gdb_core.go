@@ -278,7 +278,10 @@ func (c *Core) doUnion(ctx context.Context, unionType int, unions ...*Model) *Mo
 		unionTypeStr = "UNION"
 	}
 	for _, v := range unions {
-		sqlWithHolder, holderArgs := v.getFormattedSqlAndArgs(ctx, queryTypeNormal, false)
+		sqlWithHolder, holderArgs, err := v.getFormattedSqlAndArgs(ctx, queryTypeNormal, false)
+		if err != nil {
+			panic(err)
+		}
 		if composedSqlStr == "" {
 			composedSqlStr += fmt.Sprintf(`(%s)`, sqlWithHolder)
 		} else {
@@ -434,9 +437,10 @@ func (c *Core) DoInsert(ctx context.Context, link Link, table string, list List,
 		// Note that the map type is unordered,
 		// so it should use slice+key to retrieve the value.
 		for _, k := range keys {
-			if s, ok := list[i][k].(Raw); ok {
-				values = append(values, gconv.String(s))
-			} else {
+			switch list[i][k].(type) {
+			case Raw, *Raw:
+				values = append(values, gconv.String(list[i][k]))
+			default:
 				values = append(values, "?")
 				params = append(params, list[i][k])
 			}
@@ -570,7 +574,7 @@ func (c *Core) DoUpdate(ctx context.Context, link Link, table string, data inter
 				}
 			}
 		)
-		dataMap, err = c.db.ConvertDataForRecord(ctx, data)
+		dataMap, err = c.ConvertDataForInsertAndUpdate(ctx, data)
 		if err != nil {
 			return nil, err
 		}

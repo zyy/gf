@@ -323,12 +323,10 @@ func GetPrimaryKeyCondition(primary string, where ...interface{}) (newWhereCondi
 // formatSql formats the sql string and its arguments before executing.
 // The internal handleArguments function might be called twice during the SQL procedure,
 // but do not worry about it, it's safe and efficient.
-func formatSql(sql string, args []interface{}) (newSql string, newArgs []interface{}) {
-	// DO NOT do this as there may be multiple lines and comments in the sql.
-	// sql = gstr.Trim(sql)
-	// sql = gstr.Replace(sql, "\n", " ")
-	// sql, _ = gregex.ReplaceString(`\s{2,}`, ` `, sql)
-	return handleArguments(sql, args)
+func formatSql(
+	ctx context.Context, db DB, sql string, args []interface{},
+) (newSql string, newArgs []interface{}, err error) {
+	return handleSqlAndArguments(ctx, db, sql, args)
 }
 
 type formatWhereHolderInput struct {
@@ -365,7 +363,9 @@ func isKeyValueCanBeOmitEmpty(omitEmpty bool, whereType string, key, value inter
 }
 
 // formatWhereHolder formats where statement and its arguments for `Where` and `Having` statements.
-func formatWhereHolder(ctx context.Context, db DB, in formatWhereHolderInput) (newWhere string, newArgs []interface{}) {
+func formatWhereHolder(
+	ctx context.Context, db DB, in formatWhereHolderInput,
+) (newWhere string, newArgs []interface{}, err error) {
 	var (
 		buffer      = bytes.NewBuffer(nil)
 		reflectInfo = reflection.OriginValueAndKind(in.Where)
@@ -524,15 +524,25 @@ func formatWhereHolder(ctx context.Context, db DB, in formatWhereHolderInput) (n
 				whereStr, _ = gregex.ReplaceStringFunc(`(\?)`, whereStr, func(s string) string {
 					index++
 					if i+len(newArgs) == index {
-						sqlWithHolder, holderArgs := model.getFormattedSqlAndArgs(
+						var (
+							sqlWithHolder string
+							holderArgs    []interface{}
+						)
+						sqlWithHolder, holderArgs, err = model.getFormattedSqlAndArgs(
 							ctx, queryTypeNormal, false,
 						)
+						if err != nil {
+							return ""
+						}
 						newArgs = append(newArgs, holderArgs...)
 						// Automatically adding the brackets.
 						return "(" + sqlWithHolder + ")"
 					}
 					return s
 				})
+				if err != nil {
+					return "", nil, err
+				}
 				in.Args = gutil.SliceDelete(in.Args, i)
 				continue
 			}
@@ -542,7 +552,7 @@ func formatWhereHolder(ctx context.Context, db DB, in formatWhereHolderInput) (n
 	}
 
 	if buffer.Len() == 0 {
-		return "", in.Args
+		return "", in.Args, nil
 	}
 	if len(in.Args) > 0 {
 		newArgs = append(newArgs, in.Args...)
@@ -577,7 +587,7 @@ func formatWhereHolder(ctx context.Context, db DB, in formatWhereHolderInput) (n
 			}
 		}
 	}
-	return handleArguments(newWhere, newArgs)
+	return handleSqlAndArguments(ctx, db, newWhere, newArgs)
 }
 
 // formatWhereInterfaces formats `where` as []interface{}.
@@ -702,99 +712,93 @@ func formatWhereKeyValue(in formatWhereKeyValueInput) (newArgs []interface{}) {
 	return in.Args
 }
 
-// handleArguments is an important function, which handles the sql and all its arguments
+// handleSqlAndArguments is an important function, which handles the sql and all its arguments
 // before committing them to underlying driver.
-func handleArguments(sql string, args []interface{}) (newSql string, newArgs []interface{}) {
+func handleSqlAndArguments(
+	ctx context.Context, db DB, sql string, args []interface{},
+) (newSql string, newArgs []interface{}, err error) {
 	newSql = sql
 	// insertHolderCount is used to calculate the inserting position for the '?' holder.
 	insertHolderCount := 0
 	// Handles the slice arguments.
-	if len(args) > 0 {
-		for index, arg := range args {
-			reflectInfo := reflection.OriginValueAndKind(arg)
-			switch reflectInfo.OriginKind {
-			case reflect.Slice, reflect.Array:
-				// It does not split the type of []byte.
-				// Eg: table.Where("name = ?", []byte("john"))
-				if _, ok := arg.([]byte); ok {
-					newArgs = append(newArgs, arg)
-					continue
-				}
-
-				if reflectInfo.OriginValue.Len() == 0 {
-					// Empty slice argument, it converts the sql to a false sql.
-					// Eg:
-					// Query("select * from xxx where id in(?)", g.Slice{}) -> select * from xxx where 0=1
-					// Where("id in(?)", g.Slice{}) -> WHERE 0=1
-					if gstr.Contains(newSql, "?") {
-						whereKeyWord := " WHERE "
-						if p := gstr.PosI(newSql, whereKeyWord); p == -1 {
-							return "0=1", []interface{}{}
-						} else {
-							return gstr.SubStr(newSql, 0, p+len(whereKeyWord)) + "0=1", []interface{}{}
-						}
-					}
-				} else {
-					for i := 0; i < reflectInfo.OriginValue.Len(); i++ {
-						newArgs = append(newArgs, reflectInfo.OriginValue.Index(i).Interface())
-					}
-				}
-
-				// If the '?' holder count equals the length of the slice,
-				// it does not implement the arguments splitting logic.
-				// Eg: db.Query("SELECT ?+?", g.Slice{1, 2})
-				if len(args) == 1 && gstr.Count(newSql, "?") == reflectInfo.OriginValue.Len() {
-					break
-				}
-				// counter is used to finding the inserting position for the '?' holder.
-				var (
-					counter  = 0
-					replaced = false
-				)
-				newSql, _ = gregex.ReplaceStringFunc(`\?`, newSql, func(s string) string {
-					if replaced {
-						return s
-					}
-					counter++
-					if counter == index+insertHolderCount+1 {
-						replaced = true
-						insertHolderCount += reflectInfo.OriginValue.Len() - 1
-						return "?" + strings.Repeat(",?", reflectInfo.OriginValue.Len()-1)
-					}
-					return s
-				})
-
-			// Special struct handling.
-			case reflect.Struct:
-				switch arg.(type) {
-				// The underlying driver supports time.Time/*time.Time types.
-				case time.Time, *time.Time:
-					newArgs = append(newArgs, arg)
-					continue
-
-				case gtime.Time:
-					newArgs = append(newArgs, arg.(gtime.Time).Time)
-					continue
-
-				case *gtime.Time:
-					newArgs = append(newArgs, arg.(*gtime.Time).Time)
-					continue
-
-				default:
-					// It converts the struct to string in default
-					// if it has implemented the String interface.
-					if v, ok := arg.(iString); ok {
-						newArgs = append(newArgs, v.String())
-						continue
-					}
-				}
+	if len(args) == 0 {
+		return
+	}
+	for index, arg := range args {
+		reflectInfo := reflection.OriginValueAndKind(arg)
+		switch reflectInfo.OriginKind {
+		case reflect.Slice, reflect.Array:
+			// It does not split the type of []byte.
+			// Eg: table.Where("name = ?", []byte("john"))
+			if _, ok := arg.([]byte); ok {
 				newArgs = append(newArgs, arg)
-
-			default:
-				newArgs = append(newArgs, arg)
+				continue
 			}
+
+			if reflectInfo.OriginValue.Len() == 0 {
+				// Empty slice argument, it converts the sql to a false sql.
+				// Eg:
+				// Query("select * from xxx where id in(?)", g.Slice{}) -> select * from xxx where 0=1
+				// Where("id in(?)", g.Slice{}) -> WHERE 0=1
+				if gstr.Contains(newSql, "?") {
+					whereKeyWord := " WHERE "
+					if p := gstr.PosI(newSql, whereKeyWord); p == -1 {
+						return "0=1", []interface{}{}, nil
+					} else {
+						return gstr.SubStr(newSql, 0, p+len(whereKeyWord)) + "0=1", []interface{}{}, nil
+					}
+				}
+			} else {
+				for i := 0; i < reflectInfo.OriginValue.Len(); i++ {
+					newArgs = append(newArgs, reflectInfo.OriginValue.Index(i).Interface())
+				}
+			}
+
+			// If the '?' holder count equals the length of the slice,
+			// it does not implement the arguments splitting logic.
+			// Eg: db.Query("SELECT ?+?", g.Slice{1, 2})
+			if len(args) == 1 && gstr.Count(newSql, "?") == reflectInfo.OriginValue.Len() {
+				break
+			}
+			// counter is used to finding the inserting position for the '?' holder.
+			var (
+				counter  = 0
+				replaced = false
+			)
+			newSql, _ = gregex.ReplaceStringFunc(`\?`, newSql, func(s string) string {
+				if replaced {
+					return s
+				}
+				counter++
+				if counter == index+insertHolderCount+1 {
+					replaced = true
+					insertHolderCount += reflectInfo.OriginValue.Len() - 1
+					return "?" + strings.Repeat(",?", reflectInfo.OriginValue.Len()-1)
+				}
+				return s
+			})
+
+		default:
+			var newArg interface{}
+			if newArg, err = db.ConvertValue(ctx, arg); err != nil {
+				return "", nil, err
+			}
+			newArgs = append(newArgs, newArg)
 		}
 	}
+	// Replace Raw/*Raw into `newSql` by holder `?`.
+	var index = 0
+	newSql, _ = gregex.ReplaceStringFunc(`\?`, newSql, func(s string) string {
+		switch newArgs[index].(type) {
+		case Raw, *Raw:
+			rawStr := gconv.String(newArgs[index])
+			newArgs = gutil.SliceDelete(newArgs, index)
+			return rawStr
+		default:
+			index++
+		}
+		return s
+	})
 	return
 }
 

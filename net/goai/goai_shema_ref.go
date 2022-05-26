@@ -105,3 +105,8 @@ func (r SchemaRef) MarshalJSON() ([]byte, error) {
 	}
 	return json.Marshal(r.Value)
 }
+
+func (r *SchemaRef) UnmarshalJSON(b []byte) error {
+	r.Value = &Schema{}
+	return json.Unmarshal(b, r.Value)
+}

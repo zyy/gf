@@ -8,6 +8,7 @@ package goai
 
 import (
 	"github.com/gogf/gf/v2/container/gmap"
+	"github.com/gogf/gf/v2/internal/json"
 )
 
 type Schemas struct {
@@ -66,4 +67,9 @@ func (s *Schemas) Iterator(f func(key string, ref SchemaRef) bool) {
 func (s Schemas) MarshalJSON() ([]byte, error) {
 	s.init()
 	return s.refs.MarshalJSON()
+}
+
+func (s *Schemas) UnmarshalJSON(b []byte) error {
+	s.init()
+	return json.Unmarshal(b, s.refs)
 }

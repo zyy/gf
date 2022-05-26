@@ -61,3 +61,30 @@ func (p Parameter) MarshalJSON() ([]byte, error) {
 	}
 	return json.Marshal(m)
 }
+
+func (p *Parameter) UnmarshalJSON(b []byte) error {
+	var (
+		m   map[string]json.RawMessage
+		err error
+	)
+	// To prevent JSON marshal recursion error.
+	type tempParameter Parameter
+	var t tempParameter
+	if err = json.Unmarshal(b, &t); err != nil {
+		return err
+	}
+	*p = Parameter(t)
+
+	if err = json.Unmarshal(b, &m); err != nil {
+		return err
+	}
+	for k, v := range m {
+		if isXExtensionTag(k) {
+			if p.XExtensions == nil {
+				p.XExtensions = make(XExtensions)
+			}
+			p.XExtensions[k] = string(v)
+		}
+	}
+	return nil
+}

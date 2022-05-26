@@ -46,8 +46,7 @@ func MarshalIndent(v interface{}, prefix, indent string) (marshaledBytes []byte,
 // Unmarshal parses the JSON-encoded data and stores the result in the value pointed to by v.
 // Refer to https://godoc.org/encoding/json#Unmarshal for more information.
 func Unmarshal(data []byte, v interface{}) (err error) {
-	err = json.Unmarshal(data, v)
-	if err != nil {
+	if err = json.Unmarshal(data, v); err != nil {
 		err = gerror.Wrap(err, `json.Unmarshal failed`)
 	}
 	return

@@ -11,8 +11,11 @@ package gdb
 // WhereOrPrefix("order", "status", "paid")                        => WHERE xxx OR (`order`.`status`='paid')
 // WhereOrPrefix("order", struct{Status:"paid", "channel":"bank"}) => WHERE xxx OR (`order`.`status`='paid' AND `order`.`channel`='bank')
 func (b *WhereBuilder) WhereOrPrefix(prefix string, where interface{}, args ...interface{}) *WhereBuilder {
-	where, args = b.convertWhereBuilder(where, args)
-
+	var err error
+	where, args, err = b.convertWhereBuilder(where, args)
+	if err != nil {
+		panic(err)
+	}
 	builder := b.getBuilder()
 	builder.whereHolder = append(builder.whereHolder, WhereHolder{
 		Type:     whereHolderTypeDefault,

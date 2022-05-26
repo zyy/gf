@@ -53,7 +53,10 @@ func (c *Core) DoQuery(ctx context.Context, link Link, sql string, args ...inter
 	}
 
 	// Sql filtering.
-	sql, args = formatSql(sql, args)
+	sql, args, err = formatSql(ctx, c.db, sql, args)
+	if err != nil {
+		return nil, err
+	}
 	sql, args, err = c.db.DoFilter(ctx, link, sql, args)
 	if err != nil {
 		return nil, err
@@ -103,7 +106,10 @@ func (c *Core) DoExec(ctx context.Context, link Link, sql string, args ...interf
 	}
 
 	// Sql filtering.
-	sql, args = formatSql(sql, args)
+	sql, args, err = formatSql(ctx, c.db, sql, args)
+	if err != nil {
+		return nil, err
+	}
 	sql, args, err = c.db.DoFilter(ctx, link, sql, args)
 	if err != nil {
 		return nil, err

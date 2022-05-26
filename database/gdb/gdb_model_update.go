@@ -44,15 +44,21 @@ func (m *Model) Update(dataAndWhere ...interface{}) (result sql.Result, err erro
 		return nil, gerror.NewCode(gcode.CodeMissingParameter, "updating table with empty data")
 	}
 	var (
-		updateData                                    = m.data
-		reflectInfo                                   = reflection.OriginTypeAndKind(updateData)
-		fieldNameUpdate                               = m.getSoftFieldNameUpdated()
-		conditionWhere, conditionExtra, conditionArgs = m.formatCondition(ctx, false, false)
+		updateData      = m.data
+		reflectInfo     = reflection.OriginTypeAndKind(updateData)
+		fieldNameUpdate = m.getSoftFieldNameUpdated()
+		conditionWhere  string
+		conditionExtra  string
+		conditionArgs   []interface{}
 	)
+	conditionWhere, conditionExtra, conditionArgs, err = m.formatCondition(ctx, false, false)
+	if err != nil {
+		return nil, err
+	}
 	switch reflectInfo.OriginKind {
 	case reflect.Map, reflect.Struct:
 		var dataMap map[string]interface{}
-		dataMap, err = m.db.ConvertDataForRecord(ctx, m.data)
+		dataMap, err = m.db.GetCore().ConvertDataForInsertAndUpdate(ctx, m.data)
 		if err != nil {
 			return nil, err
 		}

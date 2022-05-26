@@ -13,9 +13,16 @@ import (
 // XExtensions stores the `x-` custom extensions.
 type XExtensions map[string]string
 
+func isXExtensionTag(tagName string) bool {
+	if gstr.HasPrefix(tagName, "x-") || gstr.HasPrefix(tagName, "X-") {
+		return true
+	}
+	return false
+}
+
 func (oai *OpenApiV3) tagMapToXExtensions(tagMap map[string]string, extensions XExtensions) {
 	for k, v := range tagMap {
-		if gstr.HasPrefix(k, "x-") || gstr.HasPrefix(k, "X-") {
+		if isXExtensionTag(k) {
 			extensions[k] = v
 		}
 	}

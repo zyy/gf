@@ -49,11 +49,13 @@ func (b *WhereBuilder) Clone() *WhereBuilder {
 }
 
 // Build builds current WhereBuilder and returns the condition string and parameters.
-func (b *WhereBuilder) Build() (conditionWhere string, conditionArgs []interface{}) {
+func (b *WhereBuilder) Build() (conditionWhere string, conditionArgs []interface{}, err error) {
 	var (
 		ctx                         = b.model.GetCtx()
 		autoPrefix                  = b.model.getAutoPrefix()
 		tableForMappingAndFiltering = b.model.tables
+		newWhere                    string
+		newArgs                     []interface{}
 	)
 	if len(b.whereHolder) > 0 {
 		for _, holder := range b.whereHolder {
@@ -62,13 +64,16 @@ func (b *WhereBuilder) Build() (conditionWhere string, conditionArgs []interface
 			}
 			switch holder.Operator {
 			case whereHolderOperatorWhere, whereHolderOperatorAnd:
-				newWhere, newArgs := formatWhereHolder(ctx, b.model.db, formatWhereHolderInput{
+				newWhere, newArgs, err = formatWhereHolder(ctx, b.model.db, formatWhereHolderInput{
 					WhereHolder: holder,
 					OmitNil:     b.model.option&optionOmitNilWhere > 0,
 					OmitEmpty:   b.model.option&optionOmitEmptyWhere > 0,
 					Schema:      b.model.schema,
 					Table:       tableForMappingAndFiltering,
 				})
+				if err != nil {
+					return "", nil, err
+				}
 				if len(newWhere) > 0 {
 					if len(conditionWhere) == 0 {
 						conditionWhere = newWhere
@@ -81,13 +86,16 @@ func (b *WhereBuilder) Build() (conditionWhere string, conditionArgs []interface
 				}
 
 			case whereHolderOperatorOr:
-				newWhere, newArgs := formatWhereHolder(ctx, b.model.db, formatWhereHolderInput{
+				newWhere, newArgs, err = formatWhereHolder(ctx, b.model.db, formatWhereHolderInput{
 					WhereHolder: holder,
 					OmitNil:     b.model.option&optionOmitNilWhere > 0,
 					OmitEmpty:   b.model.option&optionOmitEmptyWhere > 0,
 					Schema:      b.model.schema,
 					Table:       tableForMappingAndFiltering,
 				})
+				if err != nil {
+					return "", nil, err
+				}
 				if len(newWhere) > 0 {
 					if len(conditionWhere) == 0 {
 						conditionWhere = newWhere
@@ -105,7 +113,9 @@ func (b *WhereBuilder) Build() (conditionWhere string, conditionArgs []interface
 }
 
 // convertWhereBuilder converts parameter `where` to condition string and parameters if `where` is also a WhereBuilder.
-func (b *WhereBuilder) convertWhereBuilder(where interface{}, args []interface{}) (newWhere interface{}, newArgs []interface{}) {
+func (b *WhereBuilder) convertWhereBuilder(
+	where interface{}, args []interface{},
+) (newWhere interface{}, newArgs []interface{}, err error) {
 	var builder *WhereBuilder
 	switch v := where.(type) {
 	case WhereBuilder:
@@ -115,11 +125,18 @@ func (b *WhereBuilder) convertWhereBuilder(where interface{}, args []interface{}
 		builder = v
 	}
 	if builder != nil {
-		conditionWhere, conditionArgs := builder.Build()
+		var (
+			conditionWhere string
+			conditionArgs  []interface{}
+		)
+		conditionWhere, conditionArgs, err = builder.Build()
+		if err != nil {
+			return nil, nil, err
+		}
 		if len(b.whereHolder) == 0 {
 			conditionWhere = "(" + conditionWhere + ")"
 		}
-		return conditionWhere, conditionArgs
+		return conditionWhere, conditionArgs, nil
 	}
-	return where, args
+	return where, args, nil
 }

@@ -29,6 +29,11 @@ func (r ResponseRef) MarshalJSON() ([]byte, error) {
 	return json.Marshal(r.Value)
 }
 
+func (r *ResponseRef) UnmarshalJSON(b []byte) error {
+	r.Value = &Response{}
+	return json.Unmarshal(b, r.Value)
+}
+
 type getResponseSchemaRefInput struct {
 	BusinessStructName      string      // The business struct name.
 	CommonResponseObject    interface{} // Common response object.

@@ -33,6 +33,11 @@ func (r RequestBodyRef) MarshalJSON() ([]byte, error) {
 	return json.Marshal(r.Value)
 }
 
+func (r *RequestBodyRef) UnmarshalJSON(b []byte) error {
+	r.Value = &RequestBody{}
+	return json.Unmarshal(b, r.Value)
+}
+
 type getRequestSchemaRefInput struct {
 	BusinessStructName string
 	RequestObject      interface{}

@@ -96,13 +96,17 @@ func (c *Core) Model(tableNameQueryOrStruct ...interface{}) *Model {
 				Where: conditionStr,
 				Args:  tableNameQueryOrStruct[1:],
 			}
-			tableStr, extraArgs = formatWhereHolder(ctx, c.db, formatWhereHolderInput{
+			var err error
+			tableStr, extraArgs, err = formatWhereHolder(ctx, c.db, formatWhereHolderInput{
 				WhereHolder: whereHolder,
 				OmitNil:     false,
 				OmitEmpty:   false,
 				Schema:      "",
 				Table:       "",
 			})
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
 	// Normal model creation.

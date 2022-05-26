@@ -8,9 +8,11 @@ package mysql_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/os/gtime"
 	"github.com/gogf/gf/v2/test/gtest"
 )
 
@@ -80,6 +82,32 @@ func Test_Update_Raw(t *testing.T) {
 	gtest.C(t, func(t *gtest.T) {
 		user := db.Model(table)
 		n, err := user.Where("id", 101).Count()
+		t.AssertNil(err)
+		t.Assert(n, 1)
+	})
+}
+
+func Test_Where_Raw(t *testing.T) {
+	table := createTable()
+	defer dropTable(table)
+
+	gtest.C(t, func(t *gtest.T) {
+		user := db.Model(table)
+		result, err := user.Data(g.Map{
+			"id":          gdb.Raw("1"),
+			"passport":    "port_1",
+			"password":    "pass_1",
+			"nickname":    "name_1",
+			"create_time": gtime.Now().Add(time.Hour * 100),
+		}).Insert()
+		t.AssertNil(err)
+		n, _ := result.LastInsertId()
+		t.Assert(n, 1)
+	})
+
+	gtest.C(t, func(t *gtest.T) {
+		user := db.Model(table)
+		n, err := user.WhereGT("create_time", gdb.Raw("now()")).Count()
 		t.AssertNil(err)
 		t.Assert(n, 1)
 	})

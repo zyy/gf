@@ -31,3 +31,8 @@ func (r ExampleRef) MarshalJSON() ([]byte, error) {
 	}
 	return json.Marshal(r.Value)
 }
+
+func (r *ExampleRef) UnmarshalJSON(b []byte) error {
+	r.Value = &Example{}
+	return json.Unmarshal(b, r.Value)
+}

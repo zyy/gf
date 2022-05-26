@@ -42,7 +42,10 @@ func (m *Model) doGetAll(ctx context.Context, limit1 bool, where ...interface{})
 	if len(where) > 0 {
 		return m.Where(where[0], where[1:]...).All()
 	}
-	sqlWithHolder, holderArgs := m.getFormattedSqlAndArgs(ctx, queryTypeNormal, limit1)
+	sqlWithHolder, holderArgs, err := m.getFormattedSqlAndArgs(ctx, queryTypeNormal, limit1)
+	if err != nil {
+		return nil, err
+	}
 	return m.doGetAllBySql(ctx, queryTypeNormal, sqlWithHolder, holderArgs...)
 }
 
@@ -384,9 +387,16 @@ func (m *Model) Count(where ...interface{}) (int, error) {
 		return m.Where(where[0], where[1:]...).Count()
 	}
 	var (
-		sqlWithHolder, holderArgs = m.getFormattedSqlAndArgs(ctx, queryTypeCount, false)
-		all, err                  = m.doGetAllBySql(ctx, queryTypeCount, sqlWithHolder, holderArgs...)
+		err           error
+		all           Result
+		sqlWithHolder string
+		holderArgs    []interface{}
 	)
+	sqlWithHolder, holderArgs, err = m.getFormattedSqlAndArgs(ctx, queryTypeCount, false)
+	if err != nil {
+		return 0, err
+	}
+	all, err = m.doGetAllBySql(ctx, queryTypeCount, sqlWithHolder, holderArgs...)
 	if err != nil {
 		return 0, err
 	}
@@ -552,7 +562,14 @@ func (m *Model) doGetAllBySql(ctx context.Context, queryType int, sql string, ar
 	return
 }
 
-func (m *Model) getFormattedSqlAndArgs(ctx context.Context, queryType int, limit1 bool) (sqlWithHolder string, holderArgs []interface{}) {
+func (m *Model) getFormattedSqlAndArgs(
+	ctx context.Context, queryType int, limit1 bool,
+) (sqlWithHolder string, holderArgs []interface{}, err error) {
+	var (
+		conditionWhere string
+		conditionExtra string
+		conditionArgs  []interface{}
+	)
 	switch queryType {
 	case queryTypeCount:
 		queryFields := "COUNT(1)"
@@ -564,17 +581,23 @@ func (m *Model) getFormattedSqlAndArgs(ctx context.Context, queryType int, limit
 		// Raw SQL Model.
 		if m.rawSql != "" {
 			sqlWithHolder = fmt.Sprintf("SELECT %s FROM (%s) AS T", queryFields, m.rawSql)
-			return sqlWithHolder, nil
+			return sqlWithHolder, nil, nil
 		}
-		conditionWhere, conditionExtra, conditionArgs := m.formatCondition(ctx, false, true)
+		conditionWhere, conditionExtra, conditionArgs, err = m.formatCondition(ctx, false, true)
+		if err != nil {
+			return "", nil, err
+		}
 		sqlWithHolder = fmt.Sprintf("SELECT %s FROM %s%s", queryFields, m.tables, conditionWhere+conditionExtra)
 		if len(m.groupBy) > 0 {
 			sqlWithHolder = fmt.Sprintf("SELECT COUNT(1) FROM (%s) count_alias", sqlWithHolder)
 		}
-		return sqlWithHolder, conditionArgs
+		return sqlWithHolder, conditionArgs, nil
 
 	default:
-		conditionWhere, conditionExtra, conditionArgs := m.formatCondition(ctx, limit1, false)
+		conditionWhere, conditionExtra, conditionArgs, err = m.formatCondition(ctx, limit1, false)
+		if err != nil {
+			return "", nil, err
+		}
 		// Raw SQL Model, especially for UNION/UNION ALL featured SQL.
 		if m.rawSql != "" {
 			sqlWithHolder = fmt.Sprintf(
@@ -582,7 +605,7 @@ func (m *Model) getFormattedSqlAndArgs(ctx context.Context, queryType int, limit
 				m.rawSql,
 				conditionWhere+conditionExtra,
 			)
-			return sqlWithHolder, conditionArgs
+			return sqlWithHolder, conditionArgs, nil
 		}
 		// DO NOT quote the m.fields where, in case of fields like:
 		// DISTINCT t.user_id uid
@@ -590,7 +613,7 @@ func (m *Model) getFormattedSqlAndArgs(ctx context.Context, queryType int, limit
 			"SELECT %s%s FROM %s%s",
 			m.distinct, m.getFieldsFiltered(), m.tables, conditionWhere+conditionExtra,
 		)
-		return sqlWithHolder, conditionArgs
+		return sqlWithHolder, conditionArgs, nil
 	}
 }
 
@@ -608,14 +631,19 @@ func (m *Model) getAutoPrefix() string {
 // Note that this function does not change any attribute value of the `m`.
 //
 // The parameter `limit1` specifies whether limits querying only one record if m.limit is not set.
-func (m *Model) formatCondition(ctx context.Context, limit1 bool, isCountStatement bool) (conditionWhere string, conditionExtra string, conditionArgs []interface{}) {
+func (m *Model) formatCondition(
+	ctx context.Context, limit1 bool, isCountStatement bool,
+) (conditionWhere string, conditionExtra string, conditionArgs []interface{}, err error) {
 	var autoPrefix = m.getAutoPrefix()
 	// GROUP BY.
 	if m.groupBy != "" {
 		conditionExtra += " GROUP BY " + m.groupBy
 	}
 	// WHERE
-	conditionWhere, conditionArgs = m.whereBuilder.Build()
+	conditionWhere, conditionArgs, err = m.whereBuilder.Build()
+	if err != nil {
+		return "", "", nil, err
+	}
 	softDeletingCondition := m.getConditionForSoftDeleting()
 	if m.rawSql != "" && conditionWhere != "" {
 		if gstr.ContainsI(m.rawSql, " WHERE ") {
@@ -641,13 +669,20 @@ func (m *Model) formatCondition(ctx context.Context, limit1 bool, isCountStateme
 			Args:   gconv.Interfaces(m.having[1]),
 			Prefix: autoPrefix,
 		}
-		havingStr, havingArgs := formatWhereHolder(ctx, m.db, formatWhereHolderInput{
+		var (
+			havingStr  string
+			havingArgs []interface{}
+		)
+		havingStr, havingArgs, err = formatWhereHolder(ctx, m.db, formatWhereHolderInput{
 			WhereHolder: havingHolder,
 			OmitNil:     m.option&optionOmitNilWhere > 0,
 			OmitEmpty:   m.option&optionOmitEmptyWhere > 0,
 			Schema:      m.schema,
 			Table:       m.tables,
 		})
+		if err != nil {
+			return "", "", nil, err
+		}
 		if len(havingStr) > 0 {
 			conditionExtra += " HAVING " + havingStr
 			conditionArgs = append(conditionArgs, havingArgs...)

@@ -331,3 +331,30 @@ func (p Path) MarshalJSON() ([]byte, error) {
 	}
 	return json.Marshal(m)
 }
+
+func (p *Path) UnmarshalJSON(b []byte) error {
+	var (
+		m   map[string]json.RawMessage
+		err error
+	)
+	// To prevent JSON marshal recursion error.
+	type tempPath Path
+	var t tempPath
+	if err = json.Unmarshal(b, &t); err != nil {
+		return err
+	}
+	*p = Path(t)
+
+	if err = json.Unmarshal(b, &m); err != nil {
+		return err
+	}
+	for k, v := range m {
+		if isXExtensionTag(k) {
+			if p.XExtensions == nil {
+				p.XExtensions = make(XExtensions)
+			}
+			p.XExtensions[k] = string(v)
+		}
+	}
+	return nil
+}

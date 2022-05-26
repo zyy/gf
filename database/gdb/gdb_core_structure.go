@@ -23,26 +23,7 @@ import (
 	"github.com/gogf/gf/v2/util/gutil"
 )
 
-// ConvertDataForRecord is a very important function, which does converting for any data that
-// will be inserted into table/collection as a record.
-//
-// The parameter `value` should be type of *map/map/*struct/struct.
-// It supports embedded struct definition for struct.
-func (c *Core) ConvertDataForRecord(ctx context.Context, value interface{}) (map[string]interface{}, error) {
-	var (
-		err  error
-		data = DataToMapDeep(value)
-	)
-	for k, v := range data {
-		data[k], err = c.ConvertDataForRecordValue(ctx, v)
-		if err != nil {
-			return nil, gerror.Wrapf(err, `ConvertDataForRecordValue failed for value: %#v`, v)
-		}
-	}
-	return data, nil
-}
-
-func (c *Core) ConvertDataForRecordValue(ctx context.Context, value interface{}) (interface{}, error) {
+func (c *Core) ConvertValue(ctx context.Context, value interface{}) (interface{}, error) {
 	var (
 		err            error
 		convertedValue = value
@@ -119,6 +100,25 @@ func (c *Core) ConvertDataForRecordValue(ctx context.Context, value interface{})
 		}
 	}
 	return convertedValue, nil
+}
+
+// ConvertDataForInsertAndUpdate is a very important function, which does converting for any data that
+// will be inserted into table/collection as a record.
+//
+// The parameter `value` should be type of *map/map/*struct/struct.
+// It supports embedded struct definition for struct.
+func (c *Core) ConvertDataForInsertAndUpdate(ctx context.Context, value interface{}) (map[string]interface{}, error) {
+	var (
+		err  error
+		data = DataToMapDeep(value)
+	)
+	for k, v := range data {
+		data[k], err = c.db.ConvertValue(ctx, v)
+		if err != nil {
+			return nil, gerror.Wrapf(err, `ConvertDataForRecordValue failed for value: %#v`, v)
+		}
+	}
+	return data, nil
 }
 
 // convertFieldValueToLocalValue automatically checks and converts field value from database type

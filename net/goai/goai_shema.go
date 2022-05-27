@@ -173,6 +173,9 @@ func (oai *OpenApiV3) structToSchema(object interface{}) (*Schema, error) {
 		if !gstr.IsLetterUpper(structField.Name()[0]) {
 			continue
 		}
+		if structField.Type().String() == metaTypeName {
+			continue
+		}
 		var fieldName = structField.Name()
 		if jsonName := structField.TagJsonName(); jsonName != "" {
 			fieldName = jsonName
@@ -202,10 +205,6 @@ func (oai *OpenApiV3) structToSchema(object interface{}) (*Schema, error) {
 
 	if len(ignoreProperties) > 0 {
 		schema.Properties.Removes(ignoreProperties)
-	}
-
-	if len(schema.Properties.Map()) == 0 {
-		schema.Properties = nil
 	}
 	return schema, nil
 }

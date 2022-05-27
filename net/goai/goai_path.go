@@ -190,6 +190,9 @@ func (oai *OpenApiV3) addPath(in addPathInput) error {
 		RecursiveOption: gstructs.RecursiveOptionEmbeddedNoTag,
 	})
 	for _, structField := range structFields {
+		if structField.Type().String() == metaTypeName {
+			continue
+		}
 		if operation.Parameters == nil {
 			operation.Parameters = []ParameterRef{}
 		}

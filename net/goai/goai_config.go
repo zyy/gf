@@ -20,7 +20,7 @@ type Config struct {
 // fillWithDefaultValue fills configuration object of `oai` with default values if these are not configured.
 func (oai *OpenApiV3) fillWithDefaultValue() {
 	if oai.OpenAPI == "" {
-		oai.OpenAPI = `3.0.0`
+		oai.OpenAPI = defaultVersion
 	}
 	if len(oai.Config.ReadContentTypes) == 0 {
 		oai.Config.ReadContentTypes = defaultReadContentTypes

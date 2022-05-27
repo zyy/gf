@@ -77,6 +77,7 @@ const (
 	refKey                       = `$ref`
 	refPrefix                    = `#/components/schemas/`
 	metaTypeName                 = `gmeta.Meta`
+	defaultVersion               = `3.0.0`
 	xExtensionCtrl               = `x-ctrl`
 	xExtensionFunc               = `x-func`
 	validationRuleKeyForRequired = `required`

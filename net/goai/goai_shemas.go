@@ -12,7 +12,7 @@ import (
 )
 
 type Schemas struct {
-	refs *gmap.ListMap // map[string]SchemaRef
+	refs *gmap.ListMap // map[string]SchemaRef, to ensure sequence.
 }
 
 func newSchemas() *Schemas {

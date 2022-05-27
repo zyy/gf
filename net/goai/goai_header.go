@@ -31,6 +31,10 @@ func (r HeaderRef) MarshalJSON() ([]byte, error) {
 }
 
 func (r *HeaderRef) UnmarshalJSON(b []byte) error {
+	if ref := formatBytesToRef(b); ref != "" {
+		r.Ref = ref
+		return nil
+	}
 	r.Value = &Header{}
 	return json.Unmarshal(b, r.Value)
 }

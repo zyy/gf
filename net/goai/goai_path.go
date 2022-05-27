@@ -11,7 +11,6 @@ import (
 
 	"github.com/gogf/gf/v2/errors/gcode"
 	"github.com/gogf/gf/v2/errors/gerror"
-	"github.com/gogf/gf/v2/internal/json"
 	"github.com/gogf/gf/v2/os/gstructs"
 	"github.com/gogf/gf/v2/text/gstr"
 	"github.com/gogf/gf/v2/util/gconv"
@@ -19,21 +18,20 @@ import (
 )
 
 type Path struct {
-	Ref         string      `json:"$ref,omitempty"`
-	Summary     string      `json:"summary,omitempty"`
-	Description string      `json:"description,omitempty"`
-	Connect     *Operation  `json:"connect,omitempty"`
-	Delete      *Operation  `json:"delete,omitempty"`
-	Get         *Operation  `json:"get,omitempty"`
-	Head        *Operation  `json:"head,omitempty"`
-	Options     *Operation  `json:"options,omitempty"`
-	Patch       *Operation  `json:"patch,omitempty"`
-	Post        *Operation  `json:"post,omitempty"`
-	Put         *Operation  `json:"put,omitempty"`
-	Trace       *Operation  `json:"trace,omitempty"`
-	Servers     Servers     `json:"servers,omitempty"`
-	Parameters  Parameters  `json:"parameters,omitempty"`
-	XExtensions XExtensions `json:"-"`
+	Ref         string     `json:"$ref,omitempty"`
+	Summary     string     `json:"summary,omitempty"`
+	Description string     `json:"description,omitempty"`
+	Connect     *Operation `json:"connect,omitempty"`
+	Delete      *Operation `json:"delete,omitempty"`
+	Get         *Operation `json:"get,omitempty"`
+	Head        *Operation `json:"head,omitempty"`
+	Options     *Operation `json:"options,omitempty"`
+	Patch       *Operation `json:"patch,omitempty"`
+	Post        *Operation `json:"post,omitempty"`
+	Put         *Operation `json:"put,omitempty"`
+	Trace       *Operation `json:"trace,omitempty"`
+	Servers     Servers    `json:"servers,omitempty"`
+	Parameters  Parameters `json:"parameters,omitempty"`
 }
 
 // Paths are specified by OpenAPI/Swagger standard version 3.0.
@@ -85,7 +83,7 @@ func (oai *OpenApiV3) addPath(in addPathInput) error {
 
 	var (
 		mime                 string
-		path                 = Path{XExtensions: make(XExtensions)}
+		path                 = Path{}
 		inputMetaMap         = gmeta.Data(inputObject.Interface())
 		outputMetaMap        = gmeta.Data(outputObject.Interface())
 		isInputStructEmpty   = oai.doesStructHasNoFields(inputObject.Interface())
@@ -305,56 +303,6 @@ func (oai *OpenApiV3) tagMapToPath(tagMap map[string]string, path *Path) error {
 	var mergedTagMap = oai.fileMapWithShortTags(tagMap)
 	if err := gconv.Struct(mergedTagMap, path); err != nil {
 		return gerror.Wrap(err, `mapping struct tags to Path failed`)
-	}
-	oai.tagMapToXExtensions(mergedTagMap, path.XExtensions)
-	return nil
-}
-
-func (p Path) MarshalJSON() ([]byte, error) {
-	var (
-		b   []byte
-		m   map[string]json.RawMessage
-		err error
-	)
-	type tempPath Path // To prevent JSON marshal recursion error.
-	if b, err = json.Marshal(tempPath(p)); err != nil {
-		return nil, err
-	}
-	if err = json.Unmarshal(b, &m); err != nil {
-		return nil, err
-	}
-	for k, v := range p.XExtensions {
-		if b, err = json.Marshal(v); err != nil {
-			return nil, err
-		}
-		m[k] = b
-	}
-	return json.Marshal(m)
-}
-
-func (p *Path) UnmarshalJSON(b []byte) error {
-	var (
-		m   map[string]json.RawMessage
-		err error
-	)
-	// To prevent JSON marshal recursion error.
-	type tempPath Path
-	var t tempPath
-	if err = json.Unmarshal(b, &t); err != nil {
-		return err
-	}
-	*p = Path(t)
-
-	if err = json.Unmarshal(b, &m); err != nil {
-		return err
-	}
-	for k, v := range m {
-		if isXExtensionTag(k) {
-			if p.XExtensions == nil {
-				p.XExtensions = make(XExtensions)
-			}
-			p.XExtensions[k] = string(v)
-		}
 	}
 	return nil
 }

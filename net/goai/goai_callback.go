@@ -26,3 +26,12 @@ func (r CallbackRef) MarshalJSON() ([]byte, error) {
 	}
 	return json.Marshal(r.Value)
 }
+
+func (r *CallbackRef) UnmarshalJSON(b []byte) error {
+	if ref := formatBytesToRef(b); ref != "" {
+		r.Ref = ref
+		return nil
+	}
+	r.Value = &Callback{}
+	return json.Unmarshal(b, r.Value)
+}

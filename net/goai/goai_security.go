@@ -54,6 +54,10 @@ func (r SecuritySchemeRef) MarshalJSON() ([]byte, error) {
 }
 
 func (r *SecuritySchemeRef) UnmarshalJSON(b []byte) error {
+	if ref := formatBytesToRef(b); ref != "" {
+		r.Ref = ref
+		return nil
+	}
 	r.Value = &SecurityScheme{}
 	return json.Unmarshal(b, r.Value)
 }

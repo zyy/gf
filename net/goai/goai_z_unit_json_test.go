@@ -8,6 +8,7 @@ package goai_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/gogf/gf/v2/frame/g"
@@ -17,7 +18,7 @@ import (
 	"github.com/gogf/gf/v2/util/gmeta"
 )
 
-func TestOpenApiV3_XExtensions_Json(t *testing.T) {
+func TestOpenApiV3_Json(t *testing.T) {
 	type CommonResponse struct {
 		Code    int         `json:"code"    description:"Error code"`
 		Message string      `json:"message" description:"Error message"`
@@ -58,5 +59,24 @@ func TestOpenApiV3_XExtensions_Json(t *testing.T) {
 		t.AssertNil(err)
 
 		t.Assert(oai1Json, oai2Json)
+	})
+}
+
+func TestOpenApiV3_Json_Complex(t *testing.T) {
+	gtest.C(t, func(t *gtest.T) {
+		var (
+			err     error
+			content = gtest.DataContent("api.json")
+			oai     = goai.New()
+		)
+		err = json.Unmarshal([]byte(content), oai)
+		t.AssertNil(err)
+
+		oaiJson, err := json.Marshal(oai)
+		t.AssertNil(err)
+
+		fmt.Println(string(oaiJson))
+		//t.Assert(len(oaiJson), len(content))
+		//t.Assert(oaiJson, content)
 	})
 }

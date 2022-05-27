@@ -267,7 +267,11 @@ func (s *Schema) UnmarshalJSON(b []byte) error {
 			if s.XExtensions == nil {
 				s.XExtensions = make(XExtensions)
 			}
-			s.XExtensions[k] = string(v)
+			var str string
+			if err = json.Unmarshal(v, &str); err != nil {
+				return err
+			}
+			s.XExtensions[k] = str
 		}
 	}
 	return nil

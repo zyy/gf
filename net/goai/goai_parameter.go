@@ -83,7 +83,11 @@ func (p *Parameter) UnmarshalJSON(b []byte) error {
 			if p.XExtensions == nil {
 				p.XExtensions = make(XExtensions)
 			}
-			p.XExtensions[k] = string(v)
+			var str string
+			if err = json.Unmarshal(v, &str); err != nil {
+				return err
+			}
+			p.XExtensions[k] = str
 		}
 	}
 	return nil

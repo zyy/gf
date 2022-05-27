@@ -135,6 +135,7 @@ func StrLimitRune(str string, length int, suffix ...string) string {
 
 // SubStrFrom returns a portion of string `str` starting from first occurrence of and including `need`
 // to the end of `str`.
+// SubStrFromR("a.b.c", ".") => ".b.c"
 func SubStrFrom(str string, need string) (substr string) {
 	pos := Pos(str, need)
 	if pos < 0 {
@@ -145,6 +146,8 @@ func SubStrFrom(str string, need string) (substr string) {
 
 // SubStrFromEx returns a portion of string `str` starting from first occurrence of and excluding `need`
 // to the end of `str`.
+// Eg:
+// SubStrFromEx("a.b.c", ".") => "b.c"
 func SubStrFromEx(str string, need string) (substr string) {
 	pos := Pos(str, need)
 	if pos < 0 {
@@ -155,6 +158,8 @@ func SubStrFromEx(str string, need string) (substr string) {
 
 // SubStrFromR returns a portion of string `str` starting from last occurrence of and including `need`
 // to the end of `str`.
+// Eg:
+// SubStrFromR("a.b.c", ".") => ".c"
 func SubStrFromR(str string, need string) (substr string) {
 	pos := PosR(str, need)
 	if pos < 0 {
@@ -165,6 +170,8 @@ func SubStrFromR(str string, need string) (substr string) {
 
 // SubStrFromREx returns a portion of string `str` starting from last occurrence of and excluding `need`
 // to the end of `str`.
+// Eg:
+// SubStrFromR("a.b.c", ".") => "c"
 func SubStrFromREx(str string, need string) (substr string) {
 	pos := PosR(str, need)
 	if pos < 0 {

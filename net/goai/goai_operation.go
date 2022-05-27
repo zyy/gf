@@ -81,7 +81,11 @@ func (o *Operation) UnmarshalJSON(b []byte) error {
 			if o.XExtensions == nil {
 				o.XExtensions = make(XExtensions)
 			}
-			o.XExtensions[k] = string(v)
+			var str string
+			if err = json.Unmarshal(v, &str); err != nil {
+				return err
+			}
+			o.XExtensions[k] = str
 		}
 	}
 	return nil

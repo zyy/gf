@@ -34,6 +34,10 @@ func (r RequestBodyRef) MarshalJSON() ([]byte, error) {
 }
 
 func (r *RequestBodyRef) UnmarshalJSON(b []byte) error {
+	if ref := formatBytesToRef(b); ref != "" {
+		r.Ref = ref
+		return nil
+	}
 	r.Value = &RequestBody{}
 	return json.Unmarshal(b, r.Value)
 }

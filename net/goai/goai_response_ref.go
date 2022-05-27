@@ -30,6 +30,10 @@ func (r ResponseRef) MarshalJSON() ([]byte, error) {
 }
 
 func (r *ResponseRef) UnmarshalJSON(b []byte) error {
+	if ref := formatBytesToRef(b); ref != "" {
+		r.Ref = ref
+		return nil
+	}
 	r.Value = &Response{}
 	return json.Unmarshal(b, r.Value)
 }

@@ -74,6 +74,8 @@ const (
 	TagNameType     = `type`
 	TagNameDomain   = `domain`
 
+	refKey                       = `$ref`
+	refPrefix                    = `#/components/schemas/`
 	xExtensionCtrl               = `x-ctrl`
 	xExtensionFunc               = `x-func`
 	validationRuleKeyForRequired = `required`
@@ -236,7 +238,25 @@ func (oai *OpenApiV3) fileMapWithShortTags(m map[string]string) map[string]strin
 }
 
 func formatRefToBytes(ref string) []byte {
-	return []byte(fmt.Sprintf(`{"$ref":"#/components/schemas/%s"}`, ref))
+	return []byte(fmt.Sprintf(`{"%s":"%s"}`, refKey, refPrefix+ref))
+}
+
+func formatBytesToRef(b []byte) string {
+	var (
+		m   map[string]json.RawMessage
+		err = json.Unmarshal(b, &m)
+	)
+	if err != nil {
+		panic(err)
+	}
+	if v, ok := m[refKey]; ok {
+		var str string
+		if err = json.Unmarshal(v, &str); err != nil {
+			panic(err)
+		}
+		return gstr.TrimLeftStr(str, refPrefix)
+	}
+	return ""
 }
 
 func isValidParameterName(key string) bool {

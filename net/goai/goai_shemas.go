@@ -71,5 +71,19 @@ func (s Schemas) MarshalJSON() ([]byte, error) {
 
 func (s *Schemas) UnmarshalJSON(b []byte) error {
 	s.init()
-	return json.Unmarshal(b, s.refs)
+	var (
+		m   map[string]json.RawMessage
+		err error
+	)
+	if err = json.Unmarshal(b, &m); err != nil {
+		return err
+	}
+	for k, v := range m {
+		var ref SchemaRef
+		if err = json.Unmarshal(v, &ref); err != nil {
+			return err
+		}
+		s.refs.Set(k, ref)
+	}
+	return nil
 }

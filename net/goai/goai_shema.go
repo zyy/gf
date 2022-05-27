@@ -54,7 +54,7 @@ type Schema struct {
 	MaxItems             *uint64        `json:"maxItems,omitempty"`
 	Items                *SchemaRef     `json:"items,omitempty"`
 	Required             []string       `json:"required,omitempty"`
-	Properties           Schemas        `json:"properties,omitempty"`
+	Properties           *Schemas       `json:"properties,omitempty"`
 	MinProps             uint64         `json:"minProperties,omitempty"`
 	MaxProps             *uint64        `json:"maxProperties,omitempty"`
 	AdditionalProperties *SchemaRef     `json:"additionalProperties,omitempty"`
@@ -136,7 +136,7 @@ func (oai *OpenApiV3) structToSchema(object interface{}) (*Schema, error) {
 	var (
 		tagMap = gmeta.Data(object)
 		schema = &Schema{
-			Properties:  createSchemas(),
+			Properties:  newSchemas(),
 			XExtensions: make(XExtensions),
 		}
 		ignoreProperties []interface{}
@@ -204,6 +204,9 @@ func (oai *OpenApiV3) structToSchema(object interface{}) (*Schema, error) {
 		schema.Properties.Removes(ignoreProperties)
 	}
 
+	if len(schema.Properties.Map()) == 0 {
+		schema.Properties = nil
+	}
 	return schema, nil
 }
 

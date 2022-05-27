@@ -474,6 +474,9 @@ func (m *ListMap) Contains(key interface{}) (ok bool) {
 
 // Size returns the size of the map.
 func (m *ListMap) Size() (size int) {
+	if m == nil {
+		return 0
+	}
 	m.mu.RLock()
 	size = len(m.data)
 	m.mu.RUnlock()

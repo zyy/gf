@@ -8,7 +8,6 @@ package goai_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/gogf/gf/v2/frame/g"
@@ -59,24 +58,5 @@ func TestOpenApiV3_Json(t *testing.T) {
 		t.AssertNil(err)
 
 		t.Assert(oai1Json, oai2Json)
-	})
-}
-
-func TestOpenApiV3_Json_Complex(t *testing.T) {
-	gtest.C(t, func(t *gtest.T) {
-		var (
-			err     error
-			content = gtest.DataContent("api.json")
-			oai     = goai.New()
-		)
-		err = json.Unmarshal([]byte(content), oai)
-		t.AssertNil(err)
-
-		oaiJson, err := json.Marshal(oai)
-		t.AssertNil(err)
-
-		fmt.Println(string(oaiJson))
-		//t.Assert(len(oaiJson), len(content))
-		//t.Assert(oaiJson, content)
 	})
 }

@@ -130,43 +130,40 @@ func Fields(in FieldsInput) ([]Field, error) {
 		if _, ok = fieldFilterMap[field.Name()]; ok {
 			continue
 		}
-		if field.IsEmbedded() {
-			if in.RecursiveOption != RecursiveOptionNone {
-				switch in.RecursiveOption {
-				case RecursiveOptionEmbeddedNoTag:
-					if field.TagStr() != "" {
-						break
-					}
-					fallthrough
-
-				case RecursiveOptionEmbedded:
-					structFields, err := Fields(FieldsInput{
-						Pointer:         field.Value,
-						RecursiveOption: in.RecursiveOption,
-					})
-					if err != nil {
-						return nil, err
-					}
-					// The current level fields can overwrite the sub-struct fields with the same name.
-					for i := 0; i < len(structFields); i++ {
-						var (
-							structField = structFields[i]
-							fieldName   = structField.Name()
-						)
-						if _, ok = fieldFilterMap[fieldName]; ok {
-							continue
-						}
-						fieldFilterMap[fieldName] = struct{}{}
-						if v, ok := currentLevelFieldMap[fieldName]; !ok {
-							retrievedFields = append(retrievedFields, structField)
-						} else {
-							retrievedFields = append(retrievedFields, v)
-						}
-					}
-					continue
+		if field.IsEmbedded() && in.RecursiveOption != RecursiveOptionNone {
+			switch in.RecursiveOption {
+			case RecursiveOptionEmbeddedNoTag:
+				if field.TagStr() != "" {
+					break
 				}
+				fallthrough
+
+			case RecursiveOptionEmbedded:
+				structFields, err := Fields(FieldsInput{
+					Pointer:         field.Value,
+					RecursiveOption: in.RecursiveOption,
+				})
+				if err != nil {
+					return nil, err
+				}
+				// The current level fields can overwrite the sub-struct fields with the same name.
+				for i := 0; i < len(structFields); i++ {
+					var (
+						structField = structFields[i]
+						fieldName   = structField.Name()
+					)
+					if _, ok = fieldFilterMap[fieldName]; ok {
+						continue
+					}
+					fieldFilterMap[fieldName] = struct{}{}
+					if v, ok := currentLevelFieldMap[fieldName]; !ok {
+						retrievedFields = append(retrievedFields, structField)
+					} else {
+						retrievedFields = append(retrievedFields, v)
+					}
+				}
+				continue
 			}
-			continue
 		}
 		fieldFilterMap[field.Name()] = struct{}{}
 		retrievedFields = append(retrievedFields, field)

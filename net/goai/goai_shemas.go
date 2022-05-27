@@ -15,8 +15,8 @@ type Schemas struct {
 	refs *gmap.ListMap // map[string]SchemaRef
 }
 
-func createSchemas() Schemas {
-	return Schemas{
+func newSchemas() *Schemas {
+	return &Schemas{
 		refs: gmap.NewListMap(),
 	}
 }
@@ -55,6 +55,10 @@ func (s *Schemas) Map() map[string]SchemaRef {
 		return true
 	})
 	return m
+}
+
+func (s *Schemas) Size() int {
+	return s.refs.Size()
 }
 
 func (s *Schemas) Iterator(f func(key string, ref SchemaRef) bool) {
